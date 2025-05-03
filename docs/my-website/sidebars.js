@@ -41,17 +41,19 @@ const sidebars = {
             "proxy/deploy",
             "proxy/prod",
             "proxy/cli",
+            "proxy/release_cycle",
             "proxy/model_management",
             "proxy/health",
             "proxy/debugging",
             "proxy/spending_monitoring",
+            "proxy/master_key_rotations",
           ],
         },
         "proxy/demo",
         {
           type: "category",
           label: "Architecture",
-          items: ["proxy/architecture", "proxy/db_info", "router_architecture", "proxy/user_management_heirarchy", "proxy/jwt_auth_arch"],
+          items: ["proxy/architecture", "proxy/db_info", "proxy/db_deadlocks", "router_architecture", "proxy/user_management_heirarchy", "proxy/jwt_auth_arch", "proxy/image_handling"],
         },
         {
           type: "link",
@@ -65,8 +67,9 @@ const sidebars = {
           items: [
             "proxy/user_keys",
             "proxy/clientside_auth",
-            "proxy/response_headers",
             "proxy/request_headers",
+            "proxy/response_headers",
+            "proxy/model_discovery",
           ],
         },
         {
@@ -99,7 +102,17 @@ const sidebars = {
             "proxy/admin_ui_sso",
             "proxy/self_serve",
             "proxy/public_teams",
-            "proxy/custom_sso"
+            "tutorials/scim_litellm",
+            "proxy/custom_sso",
+            "proxy/ui_credentials",
+            {
+              type: "category",
+              label: "UI Logs",
+              items: [
+                "proxy/ui_logs",
+                "proxy/ui_logs_sessions"
+              ]
+            }
           ],
         },
         {
@@ -133,15 +146,17 @@ const sidebars = {
           label: "[Beta] Guardrails",
           items: [
             "proxy/guardrails/quick_start",
-            "proxy/guardrails/aim_security",
-            "proxy/guardrails/aporia_api",
-            "proxy/guardrails/bedrock",
-            "proxy/guardrails/guardrails_ai",
-            "proxy/guardrails/lakera_ai",
-            "proxy/guardrails/pii_masking_v2",
-            "proxy/guardrails/secret_detection",
-            "proxy/guardrails/custom_guardrail",
-            "prompt_injection"
+            ...[
+              "proxy/guardrails/aim_security",
+              "proxy/guardrails/aporia_api",
+              "proxy/guardrails/bedrock",
+              "proxy/guardrails/guardrails_ai",
+              "proxy/guardrails/lakera_ai",
+              "proxy/guardrails/pii_masking_v2",
+              "proxy/guardrails/secret_detection",
+              "proxy/guardrails/custom_guardrail",
+              "proxy/guardrails/prompt_injection",
+            ].sort(),
           ],
         },
         {
@@ -182,7 +197,15 @@ const sidebars = {
         "providers/azure_ai",
         "providers/aiml",
         "providers/vertex",
-        "providers/gemini",
+
+        {
+          type: "category",
+          label: "Google AI Studio",
+          items: [
+            "providers/gemini",
+            "providers/google_ai_studio/files",
+          ]
+        },
         "providers/anthropic",
         "providers/aws_sagemaker",
         "providers/bedrock",
@@ -213,6 +236,7 @@ const sidebars = {
         "providers/fireworks_ai",
         "providers/clarifai",
         "providers/vllm",
+        "providers/llamafile",
         "providers/infinity",
         "providers/xinference",
         "providers/cloudflare_workers",
@@ -229,6 +253,7 @@ const sidebars = {
         "providers/sambanova",
         "providers/custom_llm_server",
         "providers/petals",
+        "providers/snowflake"
       ],
     },
     {
@@ -238,12 +263,16 @@ const sidebars = {
         "exception_mapping",
         "completion/provider_specific_params",
         "guides/finetuned_models",
+        "guides/security_settings",
         "completion/audio",
+        "completion/web_search",
         "completion/document_understanding",
         "completion/vision",
         "completion/json_mode",
+        "reasoning_content",
         "completion/prompt_caching",
         "completion/predict_outputs",
+        "completion/knowledgebase",
         "completion/prefix",
         "completion/drop_params",
         "completion/prompt_formatting",
@@ -254,17 +283,23 @@ const sidebars = {
         "completion/batching",
         "completion/mock_requests",
         "completion/reliable_completions",
-        'tutorials/litellm_proxy_aporia',
 
       ]
     },
     {
       type: "category",
       label: "Supported Endpoints",
+      link: {
+        type: "generated-index",
+        title: "Supported Endpoints",
+        description:
+          "Learn how to deploy + call models from different providers on LiteLLM",
+        slug: "/supported_endpoints",
+      },
       items: [
         {
           type: "category",
-          label: "Chat",
+          label: "/chat/completions",
           link: {
             type: "generated-index",
             title: "Chat Completions",
@@ -277,11 +312,14 @@ const sidebars = {
             "completion/usage",
           ],
         },
+        "response_api",
         "text_completion",
         "embedding/supported_embedding",
+        "anthropic_unified",
+        "mcp",
         {
           type: "category",
-          label: "Image",
+          label: "/images",
           items: [
             "image_generation",
             "image_variations",
@@ -289,7 +327,7 @@ const sidebars = {
         },
         {
           type: "category",
-          label: "Audio",
+          label: "/audio",
           "items": [
             "audio_transcription",
             "text_to_speech",
@@ -303,6 +341,9 @@ const sidebars = {
             "pass_through/vertex_ai",
             "pass_through/google_ai_studio",
             "pass_through/cohere",
+            "pass_through/vllm",
+            "pass_through/mistral",
+            "pass_through/openai_passthrough",
             "pass_through/anthropic_completion",
             "pass_through/bedrock",
             "pass_through/assembly_ai",
@@ -312,7 +353,15 @@ const sidebars = {
         },
         "rerank",
         "assistants",
-        "files_endpoints",
+
+        {
+          type: "category",
+          label: "/files",
+          items: [
+            "files_endpoints",
+            "proxy/litellm_managed_files",
+          ],
+        },
         "batches",
         "realtime",
         "fine_tuning",
@@ -347,28 +396,15 @@ const sidebars = {
           label: "LangChain, LlamaIndex, Instructor Integration",
           items: ["langchain/langchain", "tutorials/instructor"],
         },
-        {
-          type: "category",
-          label: "Tutorials",
-          items: [
-
-            'tutorials/azure_openai',
-            'tutorials/instructor',
-            "tutorials/gradio_integration",
-            "tutorials/huggingface_codellama",
-            "tutorials/huggingface_tutorial",
-            "tutorials/TogetherAI_liteLLM",
-            "tutorials/finetuned_chat_gpt",
-            "tutorials/text_completion",
-            "tutorials/first_playground",
-            "tutorials/model_fallbacks",
-          ],
-        },
       ],
     },
     {
-      type: "doc",
-      id: "proxy/prompt_management"
+      type: "category",
+      label: "[Beta] Prompt Management",
+      items: [
+        "proxy/prompt_management",
+        "proxy/custom_prompt_management"
+      ],
     },
     {
       type: "category",
@@ -382,18 +418,12 @@ const sidebars = {
     },
     {
       type: "category",
-      label: "Adding Providers",
-      items: [
-        "adding_provider/directory_structure",
-        "adding_provider/new_rerank_provider"],
-    },
-    {
-      type: "category",
       label: "Logging & Observability",
       items: [
+        "observability/agentops_integration",
+        "observability/langfuse_integration",
         "observability/lunary_integration",
         "observability/mlflow",
-        "observability/langfuse_integration",
         "observability/gcs_bucket_integration",
         "observability/langsmith_integration",
         "observability/literalai_integration",
@@ -401,6 +431,7 @@ const sidebars = {
         "observability/logfire_integration",
         "observability/argilla",
         "observability/arize_integration",
+        "observability/phoenix_integration",
         "debugging/local_debugging",
         "observability/raw_request_response",
         "observability/custom_callback",
@@ -421,12 +452,55 @@ const sidebars = {
         "observability/opik_integration",
       ],
     },
+    {
+      type: "category",
+      label: "Tutorials",
+      items: [
+        "tutorials/openweb_ui",
+        "tutorials/openai_codex",
+        "tutorials/msft_sso",
+        "tutorials/prompt_caching",
+        "tutorials/tag_management",
+        'tutorials/litellm_proxy_aporia',
+        {
+          type: "category",
+          label: "LiteLLM Python SDK Tutorials",
+          items: [
 
+            'tutorials/azure_openai',
+            'tutorials/instructor',
+            "tutorials/gradio_integration",
+            "tutorials/huggingface_codellama",
+            "tutorials/huggingface_tutorial",
+            "tutorials/TogetherAI_liteLLM",
+            "tutorials/finetuned_chat_gpt",
+            "tutorials/text_completion",
+            "tutorials/first_playground",
+            "tutorials/model_fallbacks",
+          ],
+        },
+      ]
+    },
+    {
+      type: "category",
+      label: "Contributing",
+      items: [
+        "extras/contributing_code",
+        {
+          type: "category",
+          label: "Adding Providers",
+          items: [
+            "adding_provider/directory_structure",
+            "adding_provider/new_rerank_provider"],
+        },
+        "extras/contributing",
+        "contributing",
+      ]
+    },
     {
       type: "category",
       label: "Extras",
       items: [
-        "extras/contributing",
         "data_security",
         "data_retention",
         "migration_policy",
@@ -443,7 +517,9 @@ const sidebars = {
           items: [
             "projects/smolagents",
             "projects/Docq.AI",
+            "projects/PDL",
             "projects/OpenInterpreter",
+            "projects/Elroy",
             "projects/dbally",
             "projects/FastREPL",
             "projects/PROMPTMETHEUS",
@@ -457,9 +533,9 @@ const sidebars = {
             "projects/YiVal",
             "projects/LiteLLM Proxy",
             "projects/llm_cord",
+            "projects/pgai",
           ],
         },
-        "contributing",
         "proxy/pii_masking",
         "extras/code_quality",
         "rules",

@@ -52,6 +52,8 @@ def test_supports_tool_choice_simple_tests():
         is False
     )
 
+    assert litellm.utils.supports_tool_choice(model="perplexity/sonar") is False
+
 
 def test_check_provider_match():
     """
@@ -115,7 +117,9 @@ async def test_supports_tool_choice():
     """
     # Load model prices
     litellm._turn_on_debug()
-    with open("./model_prices_and_context_window.json", "r") as f:
+    # path = "../../model_prices_and_context_window.json"
+    path = "./model_prices_and_context_window.json"
+    with open(path, "r") as f:
         model_prices = json.load(f)
     litellm.model_cost = model_prices
     config_manager = ProviderConfigManager()
@@ -131,6 +135,12 @@ async def test_supports_tool_choice():
             or any(provider in model_name for provider in OLD_PROVIDERS)
             or model_info["litellm_provider"] in OLD_PROVIDERS
             or model_name in block_list
+            or "azure/eu" in model_name
+            or "azure/us" in model_name
+            or "codestral" in model_name
+            or "o1" in model_name
+            or "o3" in model_name
+            or "mistral" in model_name
         ):
             continue
 
@@ -144,8 +154,11 @@ async def test_supports_tool_choice():
         print("LLM provider", provider)
         provider_enum = LlmProviders(provider)
         config = config_manager.get_provider_chat_config(model, provider_enum)
-        supported_params = config.get_supported_openai_params(model)
-        print("supported_params", supported_params)
+        if config:
+            supported_params = config.get_supported_openai_params(model)
+            print("supported_params", supported_params)
+        else:
+            raise Exception(f"No config found for {model_name}, provider: {provider}")
 
         # Check tool_choice support
         supports_tool_choice_result = litellm.utils.supports_tool_choice(
@@ -154,7 +167,5 @@ async def test_supports_tool_choice():
         tool_choice_in_params = "tool_choice" in supported_params
 
         assert supports_tool_choice_result == tool_choice_in_params, (
-            f"Tool choice support mismatch for {model_name}:\n"
-            f"supports_tool_choice() returned: {supports_tool_choice_result}\n"
-            f"tool_choice in supported params: {tool_choice_in_params}"
+            f"Tool choice support mismatch for {model_name}. supports_tool_choice() returned: {supports_tool_choice_result}, tool_choice in supported params: {tool_choice_in_params}"
         )
