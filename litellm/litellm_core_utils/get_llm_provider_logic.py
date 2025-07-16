@@ -295,6 +295,9 @@ def get_llm_provider(  # noqa: PLR0915
         ## maritalk
         elif model in litellm.maritalk_models:
             custom_llm_provider = "maritalk"
+        ## moonshot
+        elif model in litellm.moonshot_models:
+            custom_llm_provider = "moonshot"
         ## vertex - text + chat + language (gemini) models
         elif (
             model in litellm.vertex_chat_models
