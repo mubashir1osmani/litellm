@@ -34,10 +34,12 @@ const sidebars = {
         ...[
           "proxy/guardrails/aim_security",
           "proxy/guardrails/aporia_api",
+          "proxy/guardrails/azure_content_guardrail",
           "proxy/guardrails/bedrock",
           "proxy/guardrails/lasso_security",
           "proxy/guardrails/guardrails_ai",
           "proxy/guardrails/lakera_ai",
+          "proxy/guardrails/openai_moderation",
           "proxy/guardrails/pangea",
           "proxy/guardrails/pii_masking_v2",
           "proxy/guardrails/panw_prisma_airs",
@@ -71,6 +73,7 @@ const sidebars = {
         "tutorials/openweb_ui",
         "tutorials/openai_codex",
         "tutorials/litellm_gemini_cli",
+        "tutorials/github_copilot_integration",
         "tutorials/claude_responses_api",
       ]
     },
@@ -114,7 +117,7 @@ const sidebars = {
         {
           type: "category",
           label: "Architecture",
-          items: ["proxy/architecture", "proxy/db_info", "proxy/db_deadlocks", "router_architecture", "proxy/user_management_heirarchy", "proxy/jwt_auth_arch", "proxy/image_handling", "proxy/spend_logs_deletion"],
+          items: ["proxy/architecture", "proxy/control_plane_and_data_plane", "proxy/db_info", "proxy/db_deadlocks", "router_architecture", "proxy/user_management_heirarchy", "proxy/jwt_auth_arch", "proxy/image_handling", "proxy/spend_logs_deletion"],
         },
         {
           type: "link",
@@ -164,6 +167,7 @@ const sidebars = {
             "proxy/ui",
             "proxy/admin_ui_sso",
             "proxy/custom_root_ui",
+            "proxy/model_hub",
             "proxy/self_serve",
             "proxy/public_teams",
             "tutorials/scim_litellm",
@@ -209,7 +213,7 @@ const sidebars = {
           type: "category",
           label: "Secret Managers",
           items: [
-            "secret",
+            "set_keys",
             "oidc"
           ]
         },
@@ -256,6 +260,7 @@ const sidebars = {
         "embedding/supported_embedding",
         "anthropic_unified",
         "mcp",
+        "generateContent",
         {
           type: "category",
           label: "/images",
@@ -355,12 +360,12 @@ const sidebars = {
           ]
         },
         "providers/azure_ai",
-        "providers/aiml",
         {
           type: "category",
           label: "Vertex AI",
           items: [
             "providers/vertex",
+            "providers/vertex_partner",
             "providers/vertex_image",
           ]
         },
@@ -405,6 +410,7 @@ const sidebars = {
         "providers/nvidia_nim",
         { type: "doc", id: "providers/nscale", label: "Nscale (EU Sovereign)" },
         "providers/xai",
+        "providers/moonshot",
         "providers/lm_studio",
         "providers/cerebras",
         "providers/volcano",
@@ -415,7 +421,6 @@ const sidebars = {
         "providers/galadriel",
         "providers/topaz",
         "providers/groq",
-        "providers/github",
         "providers/deepseek",
         "providers/elevenlabs",
         "providers/fireworks_ai",
@@ -424,8 +429,11 @@ const sidebars = {
         "providers/llamafile",
         "providers/infinity",
         "providers/xinference",
+        "providers/aiml",
         "providers/cloudflare_workers",
         "providers/deepinfra",
+        "providers/github",
+        "providers/github_copilot",
         "providers/ai21",
         "providers/nlp_cloud",
         "providers/replicate",
@@ -441,7 +449,9 @@ const sidebars = {
         "providers/petals",
         "providers/snowflake",
         "providers/featherless_ai",
-        "providers/nebius"
+        "providers/nebius",
+        "providers/dashscope",
+        "providers/bytez"
       ],
     },
     {
@@ -612,6 +622,11 @@ const sidebars = {
         "proxy/customer_routing",
         "proxy_server",
       ],
+    },
+    {
+      type: "doc",
+      id: "provider_registration/index",
+      label: "Integrate as a Model Provider",
     },
     "troubleshoot",
   ],
