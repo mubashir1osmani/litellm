@@ -289,15 +289,15 @@ def get_llm_provider(  # noqa: PLR0915
                 custom_llm_provider = "replicate"
             elif model in litellm.replicate_models:
                 custom_llm_provider = "replicate"
+        ## moonshot
+        elif model in litellm.moonshot_models:
+            custom_llm_provider = "moonshot"
         ## openrouter
         elif model in litellm.openrouter_models:
             custom_llm_provider = "openrouter"
         ## maritalk
         elif model in litellm.maritalk_models:
             custom_llm_provider = "maritalk"
-        ## moonshot
-        elif model in litellm.moonshot_models:
-            custom_llm_provider = "moonshot"
         ## vertex - text + chat + language (gemini) models
         elif (
             model in litellm.vertex_chat_models
