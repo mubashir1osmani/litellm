@@ -7,29 +7,6 @@ def add_moonshot_api_key_to_env(monkeypatch):
     """Add Moonshot API key to environment for testing."""
     monkeypatch.setenv("MOONSHOT_API_KEY", "fake-moonshot-api-key-12345")
 
-
-@pytest.fixture
-def moonshot_api_response():
-    """Mock response data for Moonshot API calls."""
-    return {
-        "id": "chatcmpl-moonshot-123",
-        "object": "chat.completion",
-        "created": 1677652288,
-        "model": "moonshot-v1-8k",
-        "choices": [
-            {
-                "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": "Hello from Moonshot! How can I help you today?",
-                },
-                "finish_reason": "stop",
-            }
-        ],
-        "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25},
-    }
-
-
 @pytest.mark.parametrize("sync_mode", [True, False])
 @pytest.mark.asyncio
 async def test_moonshot_basic_completion(sync_mode, respx_mock, moonshot_api_response):
@@ -53,6 +30,28 @@ async def test_moonshot_basic_completion(sync_mode, respx_mock, moonshot_api_res
     assert response.choices[0].message.content == "Hello from Moonshot! How can I help you today?"
     assert response.model == "moonshot/moonshot-v1-8k"
     assert response.usage.total_tokens == 25
+
+
+@pytest.fixture
+def moonshot_api_response():
+    """Mock response data for Moonshot API calls."""
+    return {
+        "id": "chatcmpl-moonshot-123",
+        "object": "chat.completion",
+        "created": 1677652288,
+        "model": "moonshot-v1-8k",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": "Hello from Moonshot! How can I help you today?",
+                },
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {"prompt_tokens": 10, "completion_tokens": 15, "total_tokens": 25},
+    }
 
 
 @pytest.mark.parametrize("sync_mode", [True, False])
