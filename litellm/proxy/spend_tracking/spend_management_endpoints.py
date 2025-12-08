@@ -1005,7 +1005,7 @@ async def get_global_spend_report(
                 "/spend/report endpoint " + CommonProxyErrors.not_premium_user.value
             )
         if api_key is not None:
-            verbose_proxy_logger.debug("Getting /spend for api_key: %s", api_key)
+            verbose_proxy_logger.debug("Getting /spend for api_key: %s", "<redacted>")
             if api_key.startswith("sk-"):
                 api_key = hash_token(token=api_key)
             sql_query = """

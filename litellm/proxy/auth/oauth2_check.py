@@ -136,7 +136,7 @@ class Oauth2Handler:
                 + CommonProxyErrors.not_premium_user.value
             )
 
-        verbose_proxy_logger.debug("Oauth2 token validation for token=%s", token)
+        verbose_proxy_logger.debug("Oauth2 token validation for token=%s", "<redacted>")
 
         # Get the token info endpoint from environment variable
         token_info_endpoint = os.getenv("OAUTH_TOKEN_INFO_ENDPOINT")
@@ -192,7 +192,7 @@ class Oauth2Handler:
 
             verbose_proxy_logger.debug(
                 "Oauth2 token validation for token=%s, response from endpoint=%s",
-                token,
+                "<redacted>",
                 data,
             )
 
