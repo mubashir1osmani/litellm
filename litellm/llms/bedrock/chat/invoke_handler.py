@@ -804,6 +804,7 @@ class BedrockLLM(BaseAWSLLM):
         )  # https://bedrock-runtime.{region_name}.amazonaws.com
         aws_web_identity_token = optional_params.pop("aws_web_identity_token", None)
         aws_sts_endpoint = optional_params.pop("aws_sts_endpoint", None)
+        aws_auth_mode = optional_params.pop("aws_auth_mode", None)
         ssl_verify = optional_params.pop("ssl_verify", None)
 
         ### SET REGION NAME ###
@@ -836,6 +837,7 @@ class BedrockLLM(BaseAWSLLM):
             aws_web_identity_token=aws_web_identity_token,
             aws_sts_endpoint=aws_sts_endpoint,
             ssl_verify=ssl_verify,
+            aws_auth_mode=aws_auth_mode,
         )
 
         ### SET RUNTIME ENDPOINT ###

@@ -1209,3 +1209,216 @@ def test_converse_handler_external_id_extraction():
                             assert hasattr(mock_get_credentials, 'called_kwargs')
                             assert "aws_external_id" in mock_get_credentials.called_kwargs
                             assert mock_get_credentials.called_kwargs["aws_external_id"] == "TestExternalID123"
+
+
+class TestAwsAuthMode:
+    """Tests for the aws_auth_mode credential parameter."""
+
+    def test_arn_only_skips_assume_role(self):
+        """
+        When aws_auth_mode='arn_only', get_credentials should use env vars auth
+        even when aws_role_name is provided, i.e. it should NOT call _auth_with_aws_role.
+        """
+        aws_llm = BaseAWSLLM()
+
+        mock_credentials = Credentials(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            token="FwoGZXIvYXdzEBY...",
+        )
+
+        with patch.object(
+            aws_llm, "_auth_with_env_vars", return_value=(mock_credentials, 3600)
+        ) as mock_env_vars, patch.object(
+            aws_llm, "_auth_with_aws_role"
+        ) as mock_assume_role:
+            result = aws_llm.get_credentials(
+                aws_role_name="arn:aws:iam::123456789012:role/TestRole",
+                aws_region_name="us-east-1",
+                aws_auth_mode="arn_only",
+            )
+
+            # Should have called _auth_with_env_vars
+            mock_env_vars.assert_called_once()
+            # Should NOT have called _auth_with_aws_role
+            mock_assume_role.assert_not_called()
+            assert result == mock_credentials
+
+    def test_default_mode_calls_assume_role(self):
+        """
+        When aws_auth_mode is None (default), get_credentials should call
+        _auth_with_aws_role when aws_role_name is provided.
+        """
+        aws_llm = BaseAWSLLM()
+
+        mock_credentials = Credentials(
+            access_key="ASIATEMP",
+            secret_key="tempSecret",
+            token="tempToken",
+        )
+
+        with patch.object(
+            aws_llm,
+            "_auth_with_aws_role",
+            return_value=(mock_credentials, 3600),
+        ) as mock_assume_role:
+            result = aws_llm.get_credentials(
+                aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
+                aws_secret_access_key="wJalrXUtnFEMI",
+                aws_role_name="arn:aws:iam::123456789012:role/TestRole",
+                aws_region_name="us-east-1",
+                aws_auth_mode=None,
+            )
+
+            mock_assume_role.assert_called_once()
+            assert result == mock_credentials
+
+    def test_assume_role_mode_explicit(self):
+        """
+        When aws_auth_mode='assume_role', behavior should match the default
+        (still calls _auth_with_aws_role).
+        """
+        aws_llm = BaseAWSLLM()
+
+        mock_credentials = Credentials(
+            access_key="ASIATEMP",
+            secret_key="tempSecret",
+            token="tempToken",
+        )
+
+        with patch.object(
+            aws_llm,
+            "_auth_with_aws_role",
+            return_value=(mock_credentials, 3600),
+        ) as mock_assume_role:
+            result = aws_llm.get_credentials(
+                aws_access_key_id="AKIAIOSFODNN7EXAMPLE",
+                aws_secret_access_key="wJalrXUtnFEMI",
+                aws_role_name="arn:aws:iam::123456789012:role/TestRole",
+                aws_region_name="us-east-1",
+                aws_auth_mode="assume_role",
+            )
+
+            mock_assume_role.assert_called_once()
+            assert result == mock_credentials
+
+    def test_arn_only_without_role_name_still_uses_env_vars(self):
+        """
+        When aws_auth_mode='arn_only' and no role name is provided,
+        it should still use env vars auth (same as default no-role behavior).
+        """
+        aws_llm = BaseAWSLLM()
+
+        mock_credentials = Credentials(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            token=None,
+        )
+
+        with patch.object(
+            aws_llm, "_auth_with_env_vars", return_value=(mock_credentials, 3600)
+        ) as mock_env_vars:
+            result = aws_llm.get_credentials(
+                aws_region_name="us-east-1",
+                aws_auth_mode="arn_only",
+            )
+
+            mock_env_vars.assert_called_once()
+            assert result == mock_credentials
+
+    def test_arn_only_caches_credentials(self):
+        """
+        When aws_auth_mode='arn_only', credentials should be cached.
+        Second call with same args should use cache, not call _auth_with_env_vars again.
+        """
+        aws_llm = BaseAWSLLM()
+        aws_llm.iam_cache = DualCache()
+
+        mock_credentials = Credentials(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+            token=None,
+        )
+
+        with patch.object(
+            aws_llm, "_auth_with_env_vars", return_value=(mock_credentials, 3600)
+        ) as mock_env_vars:
+            # First call - should hit _auth_with_env_vars
+            result1 = aws_llm.get_credentials(
+                aws_region_name="us-east-1",
+                aws_auth_mode="arn_only",
+            )
+
+            # Second call with same args - should use cache
+            result2 = aws_llm.get_credentials(
+                aws_region_name="us-east-1",
+                aws_auth_mode="arn_only",
+            )
+
+            # _auth_with_env_vars should only be called once
+            assert mock_env_vars.call_count == 1
+            assert result1 == mock_credentials
+            assert result2 == mock_credentials
+
+    def test_aws_auth_mode_threaded_through_converse_handler(self):
+        """
+        Verify that aws_auth_mode is popped from optional_params and passed
+        to get_credentials in the converse handler.
+        """
+        from litellm.llms.bedrock.chat.converse_handler import BedrockConverseLLM
+
+        converse_llm = BedrockConverseLLM()
+
+        mock_credentials = Credentials(
+            access_key="AKIAIOSFODNN7EXAMPLE",
+            secret_key="wJalrXUtnFEMI",
+            token=None,
+        )
+
+        called_kwargs = {}
+
+        def capture_get_credentials(**kwargs):
+            called_kwargs.update(kwargs)
+            return mock_credentials
+
+        optional_params = {
+            "aws_access_key_id": "AKIAIOSFODNN7EXAMPLE",
+            "aws_secret_access_key": "wJalrXUtnFEMI",
+            "aws_region_name": "us-east-1",
+            "aws_auth_mode": "arn_only",
+        }
+
+        with patch.object(
+            converse_llm, "get_credentials", side_effect=capture_get_credentials
+        ), patch.object(
+            converse_llm, "get_runtime_endpoint", return_value=("https://example.com", "https://example.com")
+        ):
+            try:
+                converse_llm.completion(
+                    model="anthropic.claude-3-sonnet-20240229-v1:0",
+                    messages=[{"role": "user", "content": "Hello"}],
+                    api_base=None,
+                    custom_prompt_dict={},
+                    model_response=MagicMock(),
+                    encoding="utf-8",
+                    logging_obj=MagicMock(),
+                    optional_params=optional_params,
+                    acompletion=False,
+                    timeout=None,
+                    litellm_params={},
+                )
+            except Exception:
+                pass
+
+            assert "aws_auth_mode" in called_kwargs
+            assert called_kwargs["aws_auth_mode"] == "arn_only"
+
+    def test_aws_auth_mode_in_params_to_check_alignment(self):
+        """
+        Verify that aws_authentication_params and params_to_check in get_credentials
+        are properly aligned (same length) after adding aws_auth_mode.
+        """
+        aws_llm = BaseAWSLLM()
+        # aws_authentication_params should have 11 items now
+        assert len(aws_llm.aws_authentication_params) == 11
+        assert "aws_auth_mode" in aws_llm.aws_authentication_params

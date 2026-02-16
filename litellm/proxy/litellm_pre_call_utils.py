@@ -797,6 +797,7 @@ AWS_CREDENTIAL_PARAMS = [
     "aws_sts_endpoint",
     "aws_bedrock_runtime_endpoint",
     "aws_external_id",
+    "aws_auth_mode",
 ]
 
 

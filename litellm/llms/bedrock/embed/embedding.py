@@ -57,6 +57,7 @@ class BedrockEmbedding(BaseAWSLLM):
         aws_profile_name = optional_params.pop("aws_profile_name", None)
         aws_web_identity_token = optional_params.pop("aws_web_identity_token", None)
         aws_sts_endpoint = optional_params.pop("aws_sts_endpoint", None)
+        aws_auth_mode = optional_params.pop("aws_auth_mode", None)
 
         ### SET REGION NAME ###
         if aws_region_name is None:
@@ -87,6 +88,7 @@ class BedrockEmbedding(BaseAWSLLM):
             aws_role_name=aws_role_name,
             aws_web_identity_token=aws_web_identity_token,
             aws_sts_endpoint=aws_sts_endpoint,
+            aws_auth_mode=aws_auth_mode,
         )
         return credentials, aws_region_name
 

@@ -71,6 +71,7 @@ class BaseAWSLLM:
             "aws_web_identity_token",
             "aws_sts_endpoint",
             "aws_external_id",
+            "aws_auth_mode",
         ]
 
     def _get_ssl_verify(self, ssl_verify: Optional[Union[bool, str]] = None):
@@ -110,9 +111,18 @@ class BaseAWSLLM:
         aws_sts_endpoint: Optional[str] = None,
         aws_external_id: Optional[str] = None,
         ssl_verify: Optional[Union[bool, str]] = None,
+        aws_auth_mode: Optional[str] = None,
     ):
         """
         Return a boto3.Credentials object
+
+        Args:
+            aws_auth_mode: Optional auth mode override.
+                - "arn_only": Use ambient/env credentials only (skip AssumeRole).
+                  Use this when teams are granted access via model ARNs and
+                  the proxy should authenticate with its own IAM identity.
+                - None / "assume_role": Default behavior - assume the role
+                  specified by aws_role_name via STS AssumeRole.
         """
         ## CHECK IS  'os.environ/' passed in
         params_to_check: List[Optional[str]] = [
@@ -126,6 +136,7 @@ class BaseAWSLLM:
             aws_web_identity_token,
             aws_sts_endpoint,
             aws_external_id,
+            aws_auth_mode,
         ]
 
         # Iterate over parameters and update if needed
@@ -151,6 +162,7 @@ class BaseAWSLLM:
             aws_web_identity_token,
             aws_sts_endpoint,
             aws_external_id,
+            aws_auth_mode,
         ) = params_to_check
 
         verbose_logger.debug(
@@ -196,6 +208,20 @@ class BaseAWSLLM:
         #   Credentials - boto3.Credentials
         #   cache ttl - Optional[int]. If None, the credentials are not cached. Some auth flows have no expiry time.
         #########################################################
+
+        # arn_only mode: teams are granted access via model ARNs.
+        # The proxy authenticates with its own ambient IAM identity
+        # (instance role, ECS task role, IRSA, env vars, etc.)
+        # and does NOT call STS AssumeRole.
+        if aws_auth_mode == "arn_only":
+            verbose_logger.debug(
+                "aws_auth_mode=arn_only: skipping role assumption, "
+                "using ambient credentials"
+            )
+            credentials, _cache_ttl = self._auth_with_env_vars()
+            self.iam_cache.set_cache(cache_key, credentials, ttl=_cache_ttl)
+            return credentials
+
         if (
             aws_web_identity_token is not None
             and aws_role_name is not None
@@ -1110,6 +1136,7 @@ class BaseAWSLLM:
             "aws_bedrock_runtime_endpoint", None
         )  # https://bedrock-runtime.{region_name}.amazonaws.com
         aws_external_id = optional_params.pop("aws_external_id", None)
+        aws_auth_mode = optional_params.pop("aws_auth_mode", None)
 
         credentials: Credentials = self.get_credentials(
             aws_access_key_id=aws_access_key_id,
@@ -1122,6 +1149,7 @@ class BaseAWSLLM:
             aws_web_identity_token=aws_web_identity_token,
             aws_sts_endpoint=aws_sts_endpoint,
             aws_external_id=aws_external_id,
+            aws_auth_mode=aws_auth_mode,
         )
 
         return Boto3CredentialsInfo(

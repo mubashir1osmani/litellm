@@ -301,6 +301,7 @@ class BedrockConverseLLM(BaseAWSLLM):
         aws_web_identity_token = optional_params.pop("aws_web_identity_token", None)
         aws_sts_endpoint = optional_params.pop("aws_sts_endpoint", None)
         aws_external_id = optional_params.pop("aws_external_id", None)
+        aws_auth_mode = optional_params.pop("aws_auth_mode", None)
         optional_params.pop("aws_region_name", None)
 
         litellm_params[
@@ -318,6 +319,7 @@ class BedrockConverseLLM(BaseAWSLLM):
             aws_web_identity_token=aws_web_identity_token,
             aws_sts_endpoint=aws_sts_endpoint,
             aws_external_id=aws_external_id,
+            aws_auth_mode=aws_auth_mode,
         )
 
         ### SET RUNTIME ENDPOINT ###

@@ -57,6 +57,7 @@ def validate_aws_credential(credential_name: str, test_role_assumption: bool = F
         "aws_sts_endpoint",
         "aws_bedrock_runtime_endpoint",
         "aws_external_id",
+        "aws_auth_mode",
     ]
     found_params = [p for p in aws_params if p in credential_values]
 

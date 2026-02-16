@@ -205,6 +205,16 @@
         "field_type": "text",
         "options": null,
         "default_value": null
+      },
+      {
+        "key": "aws_auth_mode",
+        "label": "AWS Auth Mode",
+        "placeholder": "",
+        "tooltip": "Authentication mode: 'arn_only' uses the proxy's ambient IAM credentials (no STS AssumeRole). Leave empty or set to 'assume_role' for standard role-assumption behavior.",
+        "required": false,
+        "field_type": "select",
+        "options": ["assume_role", "arn_only"],
+        "default_value": "assume_role"
       }
     ],
     "default_model_placeholder": "claude-3-opus"
