@@ -1,0 +1,139 @@
+---
+title: "API Overview"
+description: "LiteLLM Proxy is a RESTful API gateway that provides a unified OpenAI-compatible interface to 100+ LLM providers."
+---
+
+The LiteLLM Proxy API is available at your deployed proxy URL (default `http://0.0.0.0:4000`).
+
+<Note>
+  **New to LiteLLM?** Start with [Getting Started](/index) to deploy your proxy, then use the API reference to call any of the 100+ supported LLMs through a single endpoint.
+</Note>
+
+## Prerequisites
+
+To use the LiteLLM Proxy API, you'll need:
+
+- A [running LiteLLM Proxy](/proxy/docker_quick_start)
+- A [virtual API key](/proxy/virtual_keys) (or the master key for admin operations)
+
+## Base URL
+
+```
+http://your-proxy-host:4000
+```
+
+For LiteLLM Cloud or self-hosted deployments, replace with your actual domain.
+
+## Authentication
+
+All requests must include your API key in the `Authorization` header:
+
+| Header | Value | Required |
+|--------|-------|----------|
+| `Authorization` | `Bearer YOUR_LITELLM_KEY` | Yes |
+| `Content-Type` | `application/json` | Yes |
+
+```bash
+curl https://your-proxy.com/v1/chat/completions \
+  -H "Authorization: Bearer sk-litellm-xxxx" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gpt-4o", "messages": [{"role": "user", "content": "Hello!"}]}'
+```
+
+## OpenAI Compatibility
+
+The LiteLLM Proxy is **drop-in compatible** with the OpenAI API. Point any OpenAI SDK at your proxy URL:
+
+<CodeGroup>
+```python Python
+from openai import OpenAI
+
+client = OpenAI(
+    api_key="sk-litellm-xxxx",
+    base_url="http://your-proxy.com/v1"
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o",           # or any model your proxy has configured
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+```
+
+```typescript TypeScript
+import OpenAI from 'openai';
+
+const client = new OpenAI({
+  apiKey: 'sk-litellm-xxxx',
+  baseURL: 'http://your-proxy.com/v1',
+});
+
+const response = await client.chat.completions.create({
+  model: 'gpt-4o',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+```bash cURL
+curl http://your-proxy.com/v1/chat/completions \
+  -H "Authorization: Bearer sk-litellm-xxxx" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-4o",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+</CodeGroup>
+
+## Available APIs
+
+| API | Endpoint | Description |
+|-----|----------|-------------|
+| **Chat Completions** | `POST /v1/chat/completions` | Multi-turn conversations with any LLM |
+| **Text Completions** | `POST /v1/completions` | Legacy text completion format |
+| **Embeddings** | `POST /v1/embeddings` | Generate text embeddings |
+| **Image Generation** | `POST /v1/images/generations` | Generate images |
+| **Audio Transcription** | `POST /v1/audio/transcriptions` | Speech to text |
+| **Text to Speech** | `POST /v1/audio/speech` | Text to speech |
+| **Models** | `GET /v1/models` | List available models |
+| **Batches** | `POST /v1/batches` | Async batch processing |
+| **Files** | `POST /v1/files` | Upload files |
+| **Responses** | `POST /v1/responses` | OpenAI Responses API format |
+
+## Model Selection
+
+Use any model your proxy has configured by passing the model name. LiteLLM routes the request to the appropriate provider:
+
+```json
+{
+  "model": "gpt-4o",              // OpenAI
+  "model": "claude-opus-4-6",    // Anthropic
+  "model": "gemini/gemini-pro",   // Google
+  "model": "bedrock/claude-3",    // AWS Bedrock
+  "model": "my-custom-name"       // Any configured alias
+}
+```
+
+## Full Swagger Reference
+
+For the complete interactive API reference with all endpoints, parameters, and response schemas:
+
+<Card title="Interactive API Playground" icon="code" href="https://litellm-api.up.railway.app/">
+  Explore all endpoints in the Swagger UI
+</Card>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Deploy the Proxy" icon="server" href="/proxy/docker_quick_start">
+    Get your LiteLLM Proxy running in minutes
+  </Card>
+  <Card title="Virtual Keys" icon="key" href="/proxy/virtual_keys">
+    Create API keys with budgets and rate limits
+  </Card>
+  <Card title="Supported Models" icon="grid" href="/providers/openai">
+    Browse 100+ supported LLM providers
+  </Card>
+  <Card title="Observability" icon="eye" href="/observability/langfuse_integration">
+    Add logging, tracing, and cost tracking
+  </Card>
+</CardGroup>

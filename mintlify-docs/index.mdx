@@ -1,0 +1,199 @@
+---
+title: "LiteLLM - Getting Started"
+description: "Call 100+ LLMs using the OpenAI Input/Output Format"
+---
+
+# LiteLLM - Getting Started
+
+[GitHub](https://github.com/BerriAI/litellm)
+
+## **Call 100+ LLMs using the OpenAI Input/Output Format**
+
+- Translate inputs to provider's `completion`, `embedding`, and `image_generation` endpoints
+- [Consistent output](https://docs.litellm.ai/docs/supported_endpoints) — same response format regardless of provider
+- Retry/fallback logic across multiple deployments (e.g. Azure/OpenAI) — [Router](/routing)
+- Track spend & set budgets per project — [LiteLLM Proxy Server](/proxy/docker_quick_start)
+
+## How to use LiteLLM
+
+You can use LiteLLM through either the **Proxy Server** or **Python SDK**. Both give you a unified interface to 100+ LLMs.
+
+| | **LiteLLM Proxy Server** | **LiteLLM Python SDK** |
+|---|---|---|
+| **Use Case** | Central service (LLM Gateway) to access multiple LLMs | Use LiteLLM directly in your Python code |
+| **Who Uses It?** | Gen AI Enablement / ML Platform Teams | Developers building LLM projects |
+| **Key Features** | Centralized API gateway with auth & authorization, multi-tenant cost tracking, virtual keys, admin dashboard | Direct Python integration, router with retry/fallback, load balancing, OpenAI-compatible errors, observability callbacks |
+
+## **LiteLLM Python SDK**
+
+### Basic usage
+
+```shell
+pip install litellm
+```
+
+<Tabs>
+  <Tab title="OpenAI">
+    ```python
+    from litellm import completion
+    import os
+
+    ## set ENV variables
+    os.environ["OPENAI_API_KEY"] = "your-api-key"
+
+    response = completion(
+      model="openai/gpt-4o",
+      messages=[{ "content": "Hello, how are you?","role": "user"}]
+    )
+    ```
+  </Tab>
+  <Tab title="Anthropic">
+    ```python
+    from litellm import completion
+    import os
+
+    ## set ENV variables
+    os.environ["ANTHROPIC_API_KEY"] = "your-api-key"
+
+    response = completion(
+      model="anthropic/claude-3-5-sonnet-20241022",
+      messages=[{ "content": "Hello, how are you?","role": "user"}]
+    )
+    ```
+  </Tab>
+  <Tab title="Vertex AI">
+    ```python
+    from litellm import completion
+
+    ## set ENV variables
+    os.environ["VERTEXAI_PROJECT"] = "hardy-device-386718"
+    os.environ["VERTEXAI_LOCATION"] = "us-central1"
+
+    response = completion(
+      model="vertex_ai/gemini-pro",
+      messages=[{ "content": "Hello, how are you?","role": "user"}]
+    )
+    ```
+  </Tab>
+  <Tab title="HuggingFace">
+    ```python
+    from litellm import completion
+    import os
+
+    os.environ["HUGGINGFACE_API_KEY"] = "huggingface_api_key"
+
+    # e.g. Call 'WizardLM/WizardCoder-Python-34B-V1.0' hosted on HuggingFace Inference Endpoints
+    response = completion(
+      model="huggingface/WizardLM/WizardCoder-Python-34B-V1.0",
+      messages=[{ "content": "Hello, how are you?", "role": "user"}],
+      api_base="https://my-endpoint.endpoints.huggingface.cloud"
+    )
+
+    print(response)
+    ```
+  </Tab>
+  <Tab title="Azure OpenAI">
+    ```python
+    from litellm import completion
+    import os
+
+    ## set ENV variables
+    os.environ["AZURE_API_KEY"] = "azure api key"
+    os.environ["AZURE_API_BASE"] = "azure api base"
+    os.environ["AZURE_API_VERSION"] = "azure api version"
+
+    response = completion(
+      model="azure/azure-gpt-3.5",
+      messages=[{ "content": "Hello, how are you?","role": "user"}]
+    )
+    ```
+  </Tab>
+  <Tab title="Ollama">
+    ```python
+    from litellm import completion
+
+    response = completion(
+      model="ollama/llama2",
+      messages=[{ "content": "Hello, how are you?","role": "user"}],
+      api_base="http://localhost:11434"
+    )
+    ```
+  </Tab>
+  <Tab title="Groq">
+    ```python
+    from litellm import completion
+    import os
+
+    ## set ENV variables
+    os.environ["GROQ_API_KEY"] = "your-groq-api-key"
+
+    response = completion(
+      model="groq/llama3-8b-8192",
+      messages=[{ "content": "Hello, how are you?","role": "user"}]
+    )
+    ```
+  </Tab>
+</Tabs>
+
+## **LiteLLM Proxy Server (LLM Gateway)**
+
+Track spend across multiple projects, set budgets, and access 100+ LLMs through a single API.
+
+### Quick Start
+
+```shell
+pip install 'litellm[proxy]'
+litellm --model huggingface/bigcode/starcoder
+
+# RUNNING on http://0.0.0.0:4000
+```
+
+<Note>
+  The proxy is also available as a [Docker image](/proxy/docker_quick_start).
+</Note>
+
+### Test the proxy
+
+```shell
+curl http://0.0.0.0:4000/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "gpt-3.5-turbo",
+    "messages": [{"role": "user", "content": "Hello!"}]
+  }'
+```
+
+## Supported Providers
+
+LiteLLM supports 100+ LLMs across all major providers:
+
+| Provider | Link |
+|---|---|
+| OpenAI | [providers/openai](/providers/openai) |
+| Azure OpenAI | [providers/azure](/providers/azure/azure) |
+| Anthropic | [providers/anthropic](/providers/anthropic) |
+| Google Vertex AI | [providers/vertex](/providers/vertex) |
+| Google AI Studio | [providers/gemini](/providers/gemini) |
+| AWS Bedrock | [providers/bedrock](/providers/bedrock) |
+| AWS SageMaker | [providers/aws_sagemaker](/providers/aws_sagemaker) |
+| Mistral AI | [providers/mistral](/providers/mistral) |
+| Groq | [providers/groq](/providers/groq) |
+| Ollama | [providers/ollama](/providers/ollama) |
+| ... and 90+ more | [All Providers](/providers/openai) |
+
+## Why use LiteLLM?
+
+<CardGroup cols={2}>
+  <Card title="Unified Interface&quot; icon=&quot;layer-group">
+    One API for 100+ LLMs — no need to learn different SDKs
+  </Card>
+  <Card title="Cost Tracking&quot; icon=&quot;chart-line">
+    Track spend per user, project, and API key across providers
+  </Card>
+  <Card title="Reliability&quot; icon=&quot;shield-check">
+    Retry and fallback logic to keep your app running
+  </Card>
+  <Card title="Observability&quot; icon=&quot;eye">
+    Integrates with Langfuse, Lunary, Helicone, MLflow, and more
+  </Card>
+</CardGroup>
