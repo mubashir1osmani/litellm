@@ -38,6 +38,7 @@ if MCP_AVAILABLE:
     from litellm.proxy._experimental.mcp_server.server import (
         ListMCPToolsRestAPIResponseObject,
         MCPServer,
+        _prepare_mcp_server_headers,
         _tool_name_matches,
         execute_mcp_tool,
         filter_tools_by_allowed_tools,
@@ -164,9 +165,22 @@ if MCP_AVAILABLE:
         user_api_key_auth: Optional[UserAPIKeyAuth] = None,
     ):
         """Helper function to get tools for a single server."""
+        # Extract server.extra_headers values from the incoming request raw_headers.
+        # server.extra_headers is a list of header names whose values should be forwarded
+        # to the upstream MCP server (e.g. ["x-mcp-session-id"]).
+        # _prepare_mcp_server_headers handles this extraction; we only need extra_headers.
+        _, extra_headers = _prepare_mcp_server_headers(
+            server=server,
+            mcp_server_auth_headers=None,
+            mcp_auth_header=None,
+            oauth2_headers=None,
+            raw_headers=raw_headers,
+        )
+
         tools = await global_mcp_server_manager._get_tools_from_server(
             server=server,
             mcp_auth_header=server_auth_header,
+            extra_headers=extra_headers,
             add_prefix=False,
             raw_headers=raw_headers,
         )

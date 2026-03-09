@@ -953,3 +953,66 @@ class TestGetToolsForSingleServer:
         assert "tool3" in tool_names
         assert "tool1" not in tool_names
         assert "tool4" not in tool_names
+
+    async def test_server_extra_headers_forwarded_from_raw_headers(self, monkeypatch):
+        """Test that server.extra_headers names are resolved against raw_headers and
+        forwarded as extra_headers to _get_tools_from_server (REST path bug fix).
+
+        Before the fix, server.extra_headers was only processed in the MCP protocol
+        path (_prepare_mcp_server_headers), not in the REST path
+        (_get_tools_for_single_server). This caused headers like x-mcp-session-id to
+        be missing when the UI listed tools from a saved server.
+        """
+        from litellm.proxy._experimental.mcp_server.server import MCPServer
+        from litellm.types.mcp import MCPTransport
+
+        class MockTool:
+            def __init__(self, name):
+                self.name = name
+                self.description = ""
+                self.inputSchema = {}
+
+        mock_tools = [MockTool("echo"), MockTool("add")]
+        captured: dict = {}
+
+        async def fake_get_tools_from_server(**kwargs):
+            captured["extra_headers"] = kwargs.get("extra_headers")
+            captured["mcp_auth_header"] = kwargs.get("mcp_auth_header")
+            return mock_tools
+
+        monkeypatch.setattr(
+            rest_endpoints.global_mcp_server_manager,
+            "_get_tools_from_server",
+            fake_get_tools_from_server,
+            raising=False,
+        )
+
+        # Server has extra_headers = ["x-mcp-session-id"] (stored in DB)
+        server = MCPServer(
+            server_id="auth-server",
+            name="auth-server",
+            transport=MCPTransport.http,
+            extra_headers=["x-mcp-session-id"],
+            authentication_token="my-secret-token",
+            auth_type=MCPAuth.bearer_token,
+        )
+
+        # Incoming request carries the session-id header
+        raw_headers = {
+            "x-mcp-session-id": "test-session-123",
+            "authorization": "Bearer sk-litellm-key",
+        }
+
+        result = await rest_endpoints._get_tools_for_single_server(
+            server=server,
+            server_auth_header="my-secret-token",
+            raw_headers=raw_headers,
+            user_api_key_auth=None,
+        )
+
+        assert len(result) == 2
+        # The session-id should have been forwarded as an extra header
+        assert captured["extra_headers"] is not None
+        assert captured["extra_headers"].get("x-mcp-session-id") == "test-session-123"
+        # The bearer token should still be passed as mcp_auth_header
+        assert captured["mcp_auth_header"] == "my-secret-token"
