@@ -475,8 +475,12 @@ def get_llm_provider(
 
         # Last resort for an otherwise-unknown model: a declarative
         # fallback-generalization routing rule (e.g. routes future claude-* to anthropic).
-        # Exact provider matches above always win; this only runs on a miss.
-        if not custom_llm_provider:
+        # Exact provider matches above always win; this only runs on a miss, and only
+        # for bare ids: a model still carrying an unrecognized "provider/" prefix
+        # (e.g. "bedrockz/anthropic.claude-...") must keep raising, both because the
+        # provider would reject the prefixed id and because auth wildcard checks
+        # (`bedrock/*`) rely on the raise to deny unknown prefixes.
+        if not custom_llm_provider and "/" not in model:
             custom_llm_provider = match_routing_generalization(model)
 
         if not custom_llm_provider:
