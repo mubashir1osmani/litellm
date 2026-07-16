@@ -14,6 +14,7 @@ Each subdirectory under `tests/e2e/` is one suite, scoped to an endpoint family 
 - `quota_management/` - quota enforcement and accounting, one subfolder per behavior: `ratelimit/` (rpm/tpm blocks, window reset, pacing headers on live traffic), `budgets/` (budget definition, enforcement, and reset windows: key, team, tag, soft, multi-window), and `spend_tracking/` (spend logging and cost attribution on `/spend/*`)
 - `management/` - key/team/user/organization management routes: create/update/delete persistence via the info routes, team membership, and llm-only-key route denials; also the dashboard UI behavior on top of them, driven through the proxy-served UI at /ui with playwright (optional dep behind importorskip)
 - `logging/` - logging-integration delivery (datadog and friends)
+- `guardrails/` - guardrail enforcement and the controls that gate it: a global (default-on) guardrail created via `/guardrails`, and the key/team-level toggles that opt out of it (e.g. a team whose metadata sets `disable_global_guardrails`)
 - `security/` - secret handling and log-leak protection
 - `router/` - routing and reliability behavior (fallbacks, cooldowns)
 - `gateway/` - proxy configuration only (`litellm-config.yml`); no tests

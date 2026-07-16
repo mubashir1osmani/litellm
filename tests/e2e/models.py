@@ -504,11 +504,20 @@ class TeamMemberEntry(BaseModel):
     user_id: str
 
 
+class TeamMetadata(BaseModel):
+    """Admin-controlled team metadata. `disable_global_guardrails` opts the whole
+    team out of every default-on (global) guardrail; the proxy reads it from the
+    team's stored metadata at request time."""
+
+    disable_global_guardrails: bool | None = None
+
+
 class TeamNewBody(BaseModel):
     team_alias: str
     models: list[str] = []
     team_id: str | None = None
     organization_id: str | None = None
+    metadata: TeamMetadata | None = None
 
 
 class TeamNewResponse(BaseModel):
