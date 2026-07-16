@@ -411,6 +411,74 @@ class TestCustomGuardrailShouldRunGuardrail:
             is True
         ), "Guardrail in team's explicit list should run when key has not disabled globals"
 
+    def test_should_run_guardrail_team_disable_global_guardrail(self):
+        """A default-on guardrail must not run when the caller's team has
+        ``disable_global_guardrails: True`` in its admin metadata.
+
+        ``add_user_api_key_auth_to_request_metadata`` copies the team's metadata
+        into ``metadata.user_api_key_team_metadata`` on the request, and
+        ``_get_admin_metadata`` reads the flag from there. This is the team
+        counterpart to the key-level path covered above."""
+        from litellm.types.guardrails import GuardrailEventHooks
+
+        custom_guardrail = CustomGuardrail(
+            guardrail_name="global_guardrail",
+            default_on=True,
+            event_hook=GuardrailEventHooks.pre_call,
+        )
+
+        # Team disabled globals; no key metadata → guardrail is skipped.
+        data_team_disabled = {
+            "model": "gpt-3.5-turbo",
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {
+                "user_api_key_team_metadata": {"disable_global_guardrails": True},
+            },
+        }
+        assert (
+            custom_guardrail.should_run_guardrail(
+                data=data_team_disabled,
+                event_type=GuardrailEventHooks.pre_call,
+            )
+            is False
+        ), "Team disable_global_guardrails should skip the default-on guardrail"
+
+        # Team disabled globals; key metadata present but silent on the flag.
+        # The {**team, **key} merge in _get_admin_metadata must preserve the
+        # team's value rather than drop it once a key metadata dict exists.
+        data_team_disabled_key_present = {
+            "model": "gpt-3.5-turbo",
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {
+                "user_api_key_team_metadata": {"disable_global_guardrails": True},
+                "user_api_key_metadata": {"tags": ["team:eng"]},
+            },
+        }
+        assert (
+            custom_guardrail.should_run_guardrail(
+                data=data_team_disabled_key_present,
+                event_type=GuardrailEventHooks.pre_call,
+            )
+            is False
+        ), "Team disable must survive the merge when unrelated key metadata is present"
+
+        # Control: team metadata present without the flag → guardrail still runs.
+        # Guards against a mutation that skips guardrails regardless of the flag.
+        data_team_no_flag = {
+            "model": "gpt-3.5-turbo",
+            "messages": [{"role": "user", "content": "test"}],
+            "metadata": {
+                "user_api_key_team_metadata": {"tags": ["team:eng"]},
+            },
+        }
+        assert (
+            custom_guardrail.should_run_guardrail(
+                data=data_team_no_flag,
+                event_type=GuardrailEventHooks.pre_call,
+            )
+            is True
+        ), "Team without disable_global_guardrails should keep the default-on guardrail"
+
     def test_should_run_guardrail_with_opted_out_global_guardrails(self):
         """Test that per-guardrail opt-out only works from admin metadata"""
         from litellm.types.guardrails import GuardrailEventHooks
