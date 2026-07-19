@@ -32,6 +32,15 @@ class AuthHeaders(Headers):
     x_litellm_api_key: str | None = Field(default=None, alias="x-litellm-api-key")
 
 
+class AnthropicHeaders(AuthHeaders):
+    """Auth plus the ``anthropic-version`` header the Anthropic-native
+    /v1/messages and /v1/messages/count_tokens routes expect. It is harmless on
+    the other providers the proxy routes to, and matches what Claude Code sends
+    on its own internal calls."""
+
+    anthropic_version: str = Field(default="2023-06-01", alias="anthropic-version")
+
+
 class NoBody(BaseModel):
     """Empty body/query for routes that take none."""
 
@@ -240,6 +249,7 @@ def delete[R: BaseModel](
     headers: BaseModel,
     json: BaseModel,
     response_type: type[R],
+    params: BaseModel | None = None,
     timeout: float = 30.0,
 ) -> Result[R]:
     try:
@@ -247,6 +257,7 @@ def delete[R: BaseModel](
             str(url),
             headers=_headers(headers),
             json=json.model_dump(by_alias=True, exclude_none=True),
+            params=_params(params),
             timeout=timeout,
         )
     except requests.RequestException as exc:
