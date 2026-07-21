@@ -124,6 +124,9 @@ class BedrockRealtime(BaseAWSLLM):
 
             verbose_proxy_logger.debug("Bedrock Realtime: Bidirectional stream established")
 
+            await websocket.send_text(json.dumps(transformation_config.session_created_event(model, logging_obj)))
+            verbose_proxy_logger.debug("Bedrock Realtime: sent session.created to client on connect")
+
             # Track state for transformation
             session_state = {
                 "current_output_item_id": None,
@@ -143,6 +146,7 @@ class BedrockRealtime(BaseAWSLLM):
                     transformation_config,
                     model,
                     session_state,
+                    logging_obj,
                 )
             )
 
@@ -179,6 +183,7 @@ class BedrockRealtime(BaseAWSLLM):
         transformation_config: BedrockRealtimeConfig,
         model: str,
         session_state: dict,
+        logging_obj: Optional[LiteLLMLogging] = None,
     ):
         """Forward messages from client WebSocket to Bedrock stream."""
         from aws_sdk_bedrock_runtime.models import (
@@ -209,6 +214,15 @@ class BedrockRealtime(BaseAWSLLM):
                 # Send transformed messages to Bedrock
                 for bedrock_message in transformed_messages:
                     await send_to_bedrock(bedrock_message)
+
+                if logging_obj is not None:
+                    client_message_type: Optional[str] = None
+                    with contextlib.suppress(Exception):
+                        client_message_type = json.loads(message).get("type")
+                    if client_message_type == "session.update":
+                        await client_ws.send_text(
+                            json.dumps(transformation_config.session_updated_event(model, logging_obj))
+                        )
 
         except Exception as e:
             verbose_proxy_logger.debug(f"Client to Bedrock forwarding ended: {e}", exc_info=True)

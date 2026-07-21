@@ -789,5 +789,37 @@ class TestBedrockRealtimeResponseTransformation:
         assert len(set(response_ids)) == 1, "Response IDs should be consistent"
 
 
+class TestBedrockRealtimeSessionEvents:
+    """session.created / session.updated builders produce spec-shaped events (LIT-4655)"""
+
+    @staticmethod
+    def _logging():
+        from types import SimpleNamespace
+
+        return SimpleNamespace(litellm_trace_id="trace_123")
+
+    def test_session_created_event_shape(self):
+        event = BedrockRealtimeConfig().session_created_event("amazon.nova-sonic-v1:0", self._logging())
+        assert event["type"] == "session.created"
+        assert event["session"]["id"] == "trace_123"
+        assert event["session"]["model"] == "amazon.nova-sonic-v1:0"
+        assert event["session"]["modalities"] == ["text", "audio"]
+        assert event["event_id"]
+
+    def test_session_updated_event_shape(self):
+        event = BedrockRealtimeConfig().session_updated_event("amazon.nova-sonic-v1:0", self._logging())
+        assert event["type"] == "session.updated"
+        assert event["session"]["id"] == "trace_123"
+        assert event["session"]["model"] == "amazon.nova-sonic-v1:0"
+        assert event["event_id"]
+
+    def test_created_and_updated_have_distinct_event_ids(self):
+        config = BedrockRealtimeConfig()
+        logging_obj = self._logging()
+        created = config.session_created_event("amazon.nova-sonic-v1:0", logging_obj)
+        updated = config.session_updated_event("amazon.nova-sonic-v1:0", logging_obj)
+        assert created["event_id"] != updated["event_id"]
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

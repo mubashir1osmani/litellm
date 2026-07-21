@@ -623,6 +623,39 @@ class BedrockRealtimeConfig(BaseRealtimeConfig):
             verbose_logger.warning(f"Unknown message type: {message_type}")
             return []
 
+    def _session_object(self, model: str, logging_obj: LiteLLMLoggingObj) -> OpenAIRealtimeStreamSession:
+        session = OpenAIRealtimeStreamSession(
+            id=logging_obj.litellm_trace_id,
+            modalities=["text", "audio"],
+        )
+        if model is not None and isinstance(model, str):
+            session["model"] = model
+        return session
+
+    def session_created_event(
+        self,
+        model: str,
+        logging_obj: LiteLLMLoggingObj,
+    ) -> OpenAIRealtimeStreamSessionEvents:
+        """Build the OpenAI session.created event for this realtime session."""
+        return OpenAIRealtimeStreamSessionEvents(
+            type="session.created",
+            session=self._session_object(model, logging_obj),
+            event_id=str(uuid.uuid4()),
+        )
+
+    def session_updated_event(
+        self,
+        model: str,
+        logging_obj: LiteLLMLoggingObj,
+    ) -> OpenAIRealtimeStreamSessionEvents:
+        """Build the OpenAI session.updated ack for a client session.update."""
+        return OpenAIRealtimeStreamSessionEvents(
+            type="session.updated",
+            session=self._session_object(model, logging_obj),
+            event_id=str(uuid.uuid4()),
+        )
+
     def transform_session_start_event(
         self,
         event: dict,
@@ -641,19 +674,7 @@ class BedrockRealtimeConfig(BaseRealtimeConfig):
             OpenAI session.created event
         """
         verbose_logger.debug("Handling sessionStart")
-
-        session = OpenAIRealtimeStreamSession(
-            id=logging_obj.litellm_trace_id,
-            modalities=["text", "audio"],
-        )
-        if model is not None and isinstance(model, str):
-            session["model"] = model
-
-        return OpenAIRealtimeStreamSessionEvents(
-            type="session.created",
-            session=session,
-            event_id=str(uuid.uuid4()),
-        )
+        return self.session_created_event(model, logging_obj)
 
     def transform_content_start_event(
         self,
