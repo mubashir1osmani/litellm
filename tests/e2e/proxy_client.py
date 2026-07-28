@@ -75,12 +75,23 @@ from transport import HttpTransport, SplitTransport, Transport
 
 RowsPredicate = Callable[[list[SpendLogRow]], bool]
 
+# A freshly created deployment must be servable on the data plane this quickly.
+# Deliberately much shorter than poll_timeout, which covers batched read-backs
+# like spend rows: model propagation is a config reload that either happens
+# promptly or is broken, so a long wait here just hides the breakage behind every
+# test that creates a model. The interval is sub-second because a 5s budget polled
+# every poll_interval (5s) would be a single attempt.
+MODEL_SERVABLE_TIMEOUT = 5.0
+MODEL_SERVABLE_INTERVAL = 0.5
+
 
 @dataclass(frozen=True, slots=True)
 class ProxyClient:
     transport: Transport
     poll_timeout: float = 120.0
     poll_interval: float = 5.0
+    model_servable_timeout: float = MODEL_SERVABLE_TIMEOUT
+    model_servable_interval: float = MODEL_SERVABLE_INTERVAL
 
     # ---- keys / customers (satisfies lifecycle.ResourceClient) ----------
 
@@ -167,7 +178,12 @@ class ProxyClient:
         this returns can race the reload and 400 with "Invalid model name passed".
         We therefore poll the data-plane /v1/models until the model appears before
         handing back, so callers can invoke it immediately. In the monolithic case
-        it is already present on the first poll, so this adds one request."""
+        it is already present on the first poll, so this adds one request.
+
+        The wait is bounded by `model_servable_timeout` (5s), not the much longer
+        `poll_timeout` used for batched read-backs: propagation is a config reload,
+        so anything slower than a few seconds is a real problem worth failing on
+        rather than absorbing into every test that creates a model."""
         model_id = unwrap(
             self.transport.post(
                 "/model/new",
@@ -185,11 +201,10 @@ class ProxyClient:
 
     def _await_model_servable(self, model_name: str) -> None:
         """Block until the data plane lists `model_name`, or fail loudly if it does
-        not within poll_timeout (a real propagation/config problem, surfaced here
-        instead of as a downstream "Invalid model name passed")."""
-        deadline = time.monotonic() + self.poll_timeout
-        last_result: Result[ModelsListResponse] | None = None
-        while time.monotonic() < deadline:
+        not within model_servable_timeout (a real propagation/config problem,
+        surfaced here instead of as a downstream "Invalid model name passed")."""
+        deadline = time.monotonic() + self.model_servable_timeout
+        while True:
             last_result = self.transport.get(
                 "/v1/models",
                 headers=self.transport.master,
@@ -200,15 +215,17 @@ class ProxyClient:
                 entry.id == model_name for entry in last_result.data.data
             ):
                 return
-            time.sleep(self.poll_interval)
+            if time.monotonic() >= deadline:
+                break
+            time.sleep(self.model_servable_interval)
         last_error = (
             f"; last /v1/models poll did not succeed: {last_result}"
-            if last_result is not None and not isinstance(last_result, Success)
+            if not isinstance(last_result, Success)
             else ""
         )
         raise AssertionError(
             f"model {model_name!r} was created but never became servable on the data "
-            f"plane within {self.poll_timeout}s of /model/new (control/data-plane "
+            f"plane within {self.model_servable_timeout}s of /model/new (control/data-plane "
             f"propagation or STORE_MODEL_IN_DB reload issue){last_error}"
         )
 
