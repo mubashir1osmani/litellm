@@ -836,6 +836,18 @@ class Logging(LiteLLMLoggingBaseClass):
             if auto_detected_logger is not None:
                 return auto_detected_logger
 
+        # Prefer AnthropicCacheControlHook for prompt_id-less cache_control injection
+        # before generic CustomPromptManagement (dotprompt/langfuse/etc.). Those managers
+        # require prompt_id and raise 500 when auto prompt caching only set injection points.
+        # See https://github.com/BerriAI/litellm/issues/31887
+        if prompt_id is None:
+            if (
+                anthropic_cache_control_logger
+                := AnthropicCacheControlHook.get_custom_logger_for_anthropic_cache_control_hook(non_default_params)
+            ):
+                self.model_call_details["prompt_integration"] = anthropic_cache_control_logger.__class__.__name__
+                return anthropic_cache_control_logger
+
         # Then check for any registered CustomPromptManagement loggers (fallback)
         prompt_management_loggers: Final = litellm.logging_callback_manager.get_custom_loggers_for_type(
             callback_type=CustomPromptManagement

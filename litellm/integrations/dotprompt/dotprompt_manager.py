@@ -198,6 +198,9 @@ class DotpromptManager(CustomPromptManagement):
     ) -> tuple[str, list[AllMessageValues], dict]:
         from litellm.integrations.prompt_management_base import PromptManagementBase
 
+        if prompt_id is None:
+            return model, messages, non_default_params
+
         return PromptManagementBase.get_chat_completion_prompt(
             self,
             model,
