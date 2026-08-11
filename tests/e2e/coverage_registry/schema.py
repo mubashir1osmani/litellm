@@ -43,6 +43,7 @@ LlmEndpoint = Literal[
     "vector_stores",
     "ocr",
     "bedrock_native",
+    "google_native",
 ]
 
 LlmRoute = Literal[
