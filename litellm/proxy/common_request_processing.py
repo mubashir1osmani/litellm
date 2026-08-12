@@ -1055,12 +1055,14 @@ class ProxyBaseLLMRequestProcessing:
                 pass
 
         model_name: Final = ProxyBaseLLMRequestProcessing._get_deployment_model_name(litellm_logging_obj)
+        provider: Final = ProxyBaseLLMRequestProcessing._get_custom_llm_provider(litellm_logging_obj)
         classifier_cost: Final = _classifier_cost_from_request_data(request_data)
 
         headers: Final = {
             "x-litellm-call-id": call_id,
             "x-litellm-model-id": model_id,
             "x-litellm-model-name": model_name,
+            "x-litellm-provider": provider,
             "x-litellm-cache-key": cache_key,
             "x-litellm-model-api-base": (
                 api_base.split("?")[0] if api_base else None
@@ -1581,6 +1583,23 @@ class ProxyBaseLLMRequestProcessing:
             if deployment:
                 return deployment
         return None
+
+    @staticmethod
+    def _get_custom_llm_provider(
+        litellm_logging_obj: LiteLLMLoggingObj | None,
+    ) -> str | None:
+        """Resolve the provider that served the request (e.g. ``openai``, ``bedrock``).
+
+        The logging object records it under ``model_call_details`` once the call
+        has been routed, so read it back from there. Returns ``None`` for requests
+        that never resolved to an LLM provider (management routes, failures before
+        routing), and get_custom_headers drops ``None`` headers.
+        """
+        model_call_details: Final = getattr(litellm_logging_obj, "model_call_details", None)
+        if not isinstance(model_call_details, dict):
+            return None
+        provider: Final = model_call_details.get("custom_llm_provider")
+        return provider if isinstance(provider, str) and provider else None
 
     @staticmethod
     def _response_cost_from_logging_obj(
