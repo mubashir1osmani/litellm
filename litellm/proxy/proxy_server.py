@@ -528,6 +528,7 @@ from litellm.proxy.middleware.request_size_limit_middleware import (
 from litellm.proxy.middleware.security_headers_middleware import (
     SecurityHeadersMiddleware,
 )
+from litellm.proxy.middleware.telemetry_middleware import TelemetryMiddleware
 from litellm.proxy.ocr_endpoints.endpoints import router as ocr_router
 from litellm.proxy.openai_files_endpoints.files_endpoints import (
     router as openai_files_router,
@@ -1190,6 +1191,16 @@ async def proxy_startup_event(app: FastAPI):
 
     ## Initialize shared aiohttp session for connection reuse
     shared_aiohttp_session = await _initialize_shared_aiohttp_session()
+
+    ## [Optional] Initialize opt-in usage telemetry (inert unless --telemetry and LITELLM_TELEMETRY_POSTHOG_KEY are set)
+    from litellm.proxy.telemetry.proxy_telemetry import (
+        TelemetryProperties,
+        init_proxy_telemetry,
+    )
+
+    _proxy_telemetry: Final = init_proxy_telemetry(enabled=user_telemetry)
+    if _proxy_telemetry is not None:
+        await _proxy_telemetry.acapture("litellm_proxy_started", TelemetryProperties(litellm_version=version))
 
     # End of startup event
     yield
@@ -1962,6 +1973,10 @@ app.add_middleware(
 )
 app.add_middleware(InFlightRequestsMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+# Opt-in usage telemetry. Registered at import time but inert until proxy_startup_event
+# builds a sender (only when --telemetry is on and POSTHOG_API_KEY is set); the fast
+# path returns immediately when no sender is registered, so a stock proxy pays nothing.
+app.add_middleware(TelemetryMiddleware)
 
 
 def mount_swagger_ui():

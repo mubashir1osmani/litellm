@@ -890,6 +890,46 @@ class TestProxyBaseLLMRequestProcessing:
 
         assert "x-litellm-classifier-cost" not in headers
 
+    def test_get_custom_headers_includes_provider_from_logging_obj(self):
+        """The serving provider must surface as x-litellm-provider (read back from the logging obj)."""
+        logging_obj = SimpleNamespace(
+            model_call_details={"custom_llm_provider": "bedrock"},
+            litellm_params=None,
+        )
+
+        headers = ProxyBaseLLMRequestProcessing.get_custom_headers(
+            user_api_key_dict=ProxyUserAPIKeyAuth(spend=0.0),
+            litellm_logging_obj=logging_obj,
+        )
+
+        assert headers["x-litellm-provider"] == "bedrock"
+
+    @pytest.mark.parametrize(
+        "model_call_details",
+        [
+            {},
+            {"custom_llm_provider": None},
+            {"custom_llm_provider": ""},
+        ],
+    )
+    def test_get_custom_headers_omits_provider_when_unresolved(self, model_call_details):
+        """Management routes and pre-routing failures have no provider, so the header must be dropped, not empty."""
+        logging_obj = SimpleNamespace(model_call_details=model_call_details, litellm_params=None)
+
+        headers = ProxyBaseLLMRequestProcessing.get_custom_headers(
+            user_api_key_dict=ProxyUserAPIKeyAuth(spend=0.0),
+            litellm_logging_obj=logging_obj,
+        )
+
+        assert "x-litellm-provider" not in headers
+
+    def test_get_custom_headers_omits_provider_without_logging_obj(self):
+        headers = ProxyBaseLLMRequestProcessing.get_custom_headers(
+            user_api_key_dict=ProxyUserAPIKeyAuth(spend=0.0),
+        )
+
+        assert "x-litellm-provider" not in headers
+
     def test_get_cost_breakdown_from_logging_obj_helper(self):
         """
         Test the helper function that extracts cost breakdown information.

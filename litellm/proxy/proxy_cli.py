@@ -746,7 +746,11 @@ class ProxyInitializationHelpers:
     "--telemetry",
     default=True,
     type=bool,
-    help="Helps us know if people are using this feature. Turn this off by doing `--telemetry False`",
+    help=(
+        "Emit opt-in usage telemetry (endpoints hit, providers used, deployed version) to a PostHog "
+        "project. Inert unless LITELLM_TELEMETRY_POSTHOG_KEY is set; no prompts, responses, or keys are "
+        "sent. Turn off with `--telemetry False`"
+    ),
 )
 @click.option(
     "--log_config",

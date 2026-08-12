@@ -110,6 +110,12 @@ ENV PATH="/app/.venv/bin:${PATH}" \
     PRISMA_CLI_QUERY_ENGINE_TYPE=binary \
     PRISMA_OFFLINE_MODE=true
 
+# Opt-in usage telemetry -> PostHog (endpoints hit, providers used, deployed version; never
+# prompts, responses, or keys). Baked in so images built from this Dockerfile report by default;
+# operators disable with `--telemetry False` or redirect by overriding this env var. A PostHog
+# project key is a public write key. EU accounts also set LITELLM_TELEMETRY_POSTHOG_HOST.
+ENV LITELLM_TELEMETRY_POSTHOG_KEY=phc_xW8FjSd7BSqqjRPtk9uySkJyKMw2JbyaXaZcQrtnL46m
+
 # Copy only what runtime needs. The application is installed inside the venv;
 # the rest of the builder's /app is source and build metadata that must not
 # ship (manifest-scanning tools attribute everything in it to this image).
