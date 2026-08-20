@@ -1,0 +1,39 @@
+[project]
+name = "model-launch-watcher"
+version = "0.1.0"
+description = "A2A agent that tracks new model launches across major providers and proposes verified pricing for LiteLLM's model cost map"
+requires-python = ">=3.12"
+dependencies = [
+    "a2a-sdk>=1.1.0,<2.0",
+    "sse-starlette>=2.1",
+    "fastapi>=0.115",
+    "httpx>=0.28,<0.29",
+    "langgraph>=1.2.4,<1.3.0",
+    "litellm",
+    "boto3>=1.34",
+    "uvicorn>=0.34",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+]
+
+[project.scripts]
+model-launch-watcher = "model_launch_watcher.cli:main"
+model-launch-watcher-serve = "model_launch_watcher.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/model_launch_watcher"]
+
+[tool.uv.sources]
+litellm = { path = "../..", editable = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

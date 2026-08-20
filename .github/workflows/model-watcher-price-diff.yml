@@ -1,0 +1,36 @@
+name: Model watcher, price diff
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      open_pr:
+        description: "Open a pull request per verified delta"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  price_diff:
+    if: github.repository == 'BerriAI/litellm'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4.3.0
+        with:
+          persist-credentials: false
+      - name: Set up uv
+        uses: ./.github/actions/setup-uv-with-retries
+        with:
+          version: "0.10.9"
+      - name: Detect published price changes
+        working-directory: agents/model_launch_watcher
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          uv run --with-editable . model-launch-watcher price_diff \
+            --catalog ../../model_prices_and_context_window.json
