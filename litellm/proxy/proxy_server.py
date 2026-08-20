@@ -10698,13 +10698,15 @@ async def audio_transcriptions(
         if data.get("user", None) is None and user_api_key_dict.user_id is not None:
             data["user"] = user_api_key_dict.user_id
 
-        data["model"] = (
-            general_settings.get("moderation_model", None)  # server default
-            or user_model  # model name passed via cli args
-            or data.get("model", None)  # default passed in http request
-        )
-        if user_model:
-            data["model"] = user_model
+        resolved_model: Final = user_model or data.get("model")
+        if not resolved_model:
+            raise ProxyException(
+                message="model is required",
+                type="invalid_request_error",
+                param="model",
+                code=status.HTTP_400_BAD_REQUEST,
+            )
+        data["model"] = resolved_model
 
         router_model_names: Final = llm_router.model_names if llm_router is not None else []
 
@@ -10795,6 +10797,8 @@ async def audio_transcriptions(
             user_api_key_dict=user_api_key_dict, original_exception=e, request_data=data
         )
         verbose_proxy_logger.exception("litellm.proxy.proxy_server.audio_transcription(): Exception occured - %s", e)
+        if isinstance(e, ProxyException):
+            raise
         if isinstance(e, HTTPException):
             raise ProxyException(
                 message=getattr(e, "message", str(e.detail)),

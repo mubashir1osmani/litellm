@@ -133,6 +133,24 @@ def patched_transcription_error(monkeypatch, patched_transcription):
     yield
 
 
+@pytest.fixture
+def patched_transcription_missing_model(monkeypatch, patched_transcription):
+    monkeypatch.setattr(proxy_server, "user_model", None)
+    monkeypatch.setattr(proxy_server, "general_settings", {})
+
+    async def _form_data(request):
+        from starlette.datastructures import FormData, UploadFile
+
+        upload = UploadFile(
+            filename="audio.mp3",
+            file=io.BytesIO(b"\x00\x01\x02"),
+        )
+        return FormData([("file", upload)])
+
+    monkeypatch.setattr(proxy_server, "get_form_data", _form_data)
+    yield
+
+
 @pytest.mark.parametrize("path", ["/v1/audio/speech", "/audio/speech"])
 def test_audio_speech_happy_path(client, auth_as, patched_speech, path):
     """Pins ``POST /v1/audio/speech`` and ``POST /audio/speech`` (happy)."""
@@ -193,3 +211,16 @@ def test_audio_transcription_error(client, auth_as, patched_transcription_error,
         response = client.post(path, files=files, data=data)
     assert response.status_code == 500
     assert len(response.content) > 0
+
+
+@pytest.mark.parametrize("path", ["/v1/audio/transcriptions", "/audio/transcriptions"])
+def test_audio_transcription_missing_model_is_required(
+    client, auth_as, patched_transcription_missing_model, path
+):
+    files = {"file": ("audio.mp3", b"\x00\x01\x02", "audio/mpeg")}
+    with auth_as():
+        response = client.post(path, files=files)
+    assert response.status_code == 400
+    lowered = response.text.lower()
+    assert "model" in lowered
+    assert "required" in lowered
