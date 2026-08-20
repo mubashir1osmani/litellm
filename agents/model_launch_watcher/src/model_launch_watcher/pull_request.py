@@ -88,12 +88,17 @@ def _body(priced: PricedCandidate) -> str:
 
 
 def apply_edits(catalog_path: Path, catalog_key: str, edits: Mapping[str, float]) -> None:
-    """Rewrite one entry in place, preserving the file's indent=4 formatting."""
+    """Rewrite one entry in place, reproducing the file's own formatting exactly.
+
+    The cost map is written with indent=4 and is not key-sorted. Re-serialising it sorted
+    turns a one-line price change into a diff touching every entry in the file, which is
+    unreviewable and would bury the very number the pull request exists to show.
+    """
     raw: Final = json.loads(catalog_path.read_text())
     if catalog_key not in raw:
         raise KeyError(f"{catalog_key} is absent from {catalog_path}")
     updated: Final = {**raw, catalog_key: {**raw[catalog_key], **edits}}
-    catalog_path.write_text(json.dumps(updated, indent=4, sort_keys=True) + "\n")
+    catalog_path.write_text(json.dumps(updated, indent=4) + "\n")
 
 
 async def _run(*args: str, cwd: Path) -> tuple[int, str]:

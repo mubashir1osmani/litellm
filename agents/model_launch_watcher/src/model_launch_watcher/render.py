@@ -58,6 +58,11 @@ def report_json(report: WatchReport) -> Mapping[str, object]:
         "generated_at": report.generated_at.isoformat(),
         "providers_checked": list(report.providers_checked),
         "counts": _counts(report),
+        "coverage": {
+            "compared": report.coverage.compared,
+            "token_billed_entries": report.coverage.token_billed_entries,
+            "percent": round(report.coverage.percent, 2),
+        },
         "candidates": [candidate_json(c) for c in report.candidates],
         "proposed_patch": {
             "additions": {k: dict(v) for k, v in report.patch.additions.items()},
@@ -93,6 +98,11 @@ def report_text(report: WatchReport) -> str:
             f"{counts['missing_price']} unpriced, {counts['deprecation_signal']} deprecations, "
             f"{counts['context_drift']} context drift); "
             f"{counts['proposable']} verified enough to propose"
+        ),
+        (
+            f"Price coverage: {report.coverage.compared} of {report.coverage.token_billed_entries} "
+            f"token-billed entries were compared against a published price "
+            f"({report.coverage.percent:.1f}%)"
         ),
     )
     return "\n".join((*header, "", *_finding_lines(report.candidates), *_patch_lines(report), *_failure_lines(report)))

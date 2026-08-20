@@ -13,9 +13,30 @@ the case that quietly bills every caller at the wrong rate.
 | Job | What it does | Schedule |
 | --- | --- | --- |
 | `price_diff` | Reads each provider's pricing page, extracts the whole price table, diffs it against the catalogued per-token costs, and drafts one PR per delta with a before/after table and the source URL | daily |
-| `drift_audit` | Full reconciliation: price changes, context windows that materially disagree, published shutdown dates we have not recorded, entries with no cost at all. Reports a diff count so the trend is visible | weekly |
+| `drift_audit` | Reconciles everything reachable: price changes, context windows that materially disagree, published shutdown dates we have not recorded, entries with no cost at all. Reports a diff count and the coverage it was drawn from | weekly |
 | `pr_sweep` | Finds open PRs touching the cost map, reads which entries each one changes, validates those against published prices, and returns merge / close / needs-review with the evidence | daily |
 | `issue_triage` | Sweeps open pricing issues, suggests labels and an owner, flags anything with no reply past 48h, and builds a digest for the team channel | every morning |
+
+## Coverage, and why the number is small
+
+Every report states its own denominator, because a drift count without one reads as a
+clean bill of health. A real unscoped run today:
+
+```
+Providers reached: anthropic, gemini, mistral, openai, vertex_ai, xai
+87 findings (1 price changes, 16 new, 0 unpriced, 54 deprecations, 16 context drift)
+Price coverage: 17 of 2410 token-billed entries were compared against a published price (0.7%)
+```
+
+Price coverage is low and will stay low, for a structural reason. A provider's pricing page
+lists its current flagship models, roughly fifteen of them, while the cost map carries 2410
+token-billed entries dominated by aggregators and hosts (fireworks, novita, deepinfra) that
+publish no first-party price page this agent can read. Treat price coverage as "the models
+providers actively publish", not as the catalog.
+
+Deprecation and launch coverage are much better, because those come from discovery APIs that
+list everything a provider serves. The 54 deprecation findings above are real: OpenAI returns
+a `shutdown_date` per model and the cost map has not recorded most of them.
 
 ## Why you can trust a number it reports
 
@@ -50,11 +71,13 @@ history is reviewable in git and a bad rule traces back to whoever added it.
 | `convention` | Prose guidance carried into future price extraction |
 
 ```bash
-# teach it a mapping it could not infer
-curl -s localhost:8080/ -H 'content-type: application/json' -d '{
-  "jsonrpc":"2.0","id":1,"method":"message/send",
-  "params":{"message":{"role":"ROLE_USER","parts":[{"text":"{\"kind\":\"map_name\",\"scope\":\"anthropic\",\"subject\":\"Claude Haiku 3.5 ( retired, except on Bedrock and Google Cloud )\",\"value\":\"anthropic.claude-3-5-haiku-20241022-v1:0\",\"reason\":\"page appends retirement notes to the display name\"}"}]}}}'
+curl -s localhost:8080/ -H 'content-type: application/json' -H 'A2A-Version: 1.0' -d '{
+  "jsonrpc":"2.0","id":1,"method":"SendMessage",
+  "params":{"message":{"messageId":"m1","role":"ROLE_USER","metadata":{"skill":"record_correction"},
+  "parts":[{"text":"{\"kind\":\"map_name\",\"scope\":\"anthropic\",\"subject\":\"Claude Haiku 3.5 ( retired, except on Bedrock and Google Cloud )\",\"value\":\"anthropic.claude-3-5-haiku-20241022-v1:0\",\"reason\":\"page appends retirement notes to the display name\"}"}]}}}'
 ```
+
+The `A2A-Version: 1.0` header is required; without it the SDK assumes 0.3 and refuses the call.
 
 `pin_value` is what the `65535` versus `65536` case is for: the cost map carries 65535 on purpose,
 so pin it and the weekly audit stops re-reporting it.
@@ -65,7 +88,7 @@ so pin it and the weekly audit stops re-reporting it.
 uv venv && uv pip install -e '.[dev]'
 
 model-launch-watcher price_diff --provider anthropic     # drafts PRs, opens nothing
-model-launch-watcher drift_audit                          # full reconciliation
+model-launch-watcher drift_audit                          # everything reachable, with coverage
 model-launch-watcher pr_sweep                             # validate open community PRs
 model-launch-watcher issue_triage --post                  # triage and deliver the digest
 ```

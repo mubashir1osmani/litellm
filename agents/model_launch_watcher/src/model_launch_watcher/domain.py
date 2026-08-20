@@ -183,12 +183,30 @@ class CatalogPatch:
 
 
 @dataclass(frozen=True, slots=True)
+class PriceCoverage:
+    """How much of the catalog a run actually compared against a published price.
+
+    A provider page only prices what it prices, so a drift count is meaningless without
+    the denominator it was drawn from. Reporting the count alone invites a reader to
+    treat a narrow check as a clean bill of health for the whole cost map.
+    """
+
+    compared: int
+    token_billed_entries: int
+
+    @property
+    def percent(self) -> float:
+        return 100.0 * self.compared / self.token_billed_entries if self.token_billed_entries else 0.0
+
+
+@dataclass(frozen=True, slots=True)
 class WatchReport:
     generated_at: datetime
     providers_checked: tuple[str, ...]
     candidates: tuple[PricedCandidate, ...]
     patch: CatalogPatch
     failures: tuple[SourceFailure, ...]
+    coverage: PriceCoverage = PriceCoverage(compared=0, token_billed_entries=0)
 
     @property
     def needs_human_review(self) -> tuple[PricedCandidate, ...]:

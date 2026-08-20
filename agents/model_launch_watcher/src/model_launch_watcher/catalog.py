@@ -79,6 +79,10 @@ class Catalog:
             )
         )
 
+    def token_billed_keys(self) -> frozenset[str]:
+        """Entries a published per-token price could meaningfully be compared against."""
+        return frozenset(k for k, e in self.entries.items() if e.get("mode") in _TOKEN_BILLED_MODES)
+
     def lookup(self, model: LiveModel) -> tuple[str, Mapping[str, object]] | None:
         return next(((k, self.entries[k]) for k in catalog_keys_for(model) if k in self.entries), None)
 

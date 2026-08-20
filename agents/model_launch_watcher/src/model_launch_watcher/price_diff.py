@@ -96,6 +96,17 @@ def diff_entry(
     )
 
 
+def compared_keys(
+    provider: str, catalog: Catalog, grounded: Mapping[str, TokenPricing], memory: Memory
+) -> frozenset[str]:
+    """Catalog keys this provider's page actually let the run check."""
+    return frozenset(
+        resolved.catalog_key
+        for name in grounded
+        if (resolved := resolve_catalog_key(provider, name, catalog, memory)).catalog_key is not None
+    )
+
+
 def price_drift_candidates(
     provider: str,
     catalog: Catalog,

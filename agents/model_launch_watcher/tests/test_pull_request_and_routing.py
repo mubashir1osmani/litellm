@@ -154,3 +154,15 @@ def test_card_advertises_every_skill_the_router_can_reach() -> None:
         SKILL_RECORD_CORRECTION,
     }
     assert card.supported_interfaces[0].url == "http://localhost:8080/"
+
+
+def test_apply_edits_reproduces_the_real_cost_map_formatting(tmp_path: Path) -> None:
+    """A sorted rewrite would turn a one-line price change into a whole-file diff."""
+    source = Path(__file__).resolve().parents[3] / "model_prices_and_context_window.json"
+    original = source.read_text()
+    working = tmp_path / "model_prices_and_context_window.json"
+    working.write_text(original)
+    key = "claude-opus-5"
+    before = json.loads(original)[key]["input_cost_per_token"]
+    apply_edits(working, key, {"input_cost_per_token": before})
+    assert working.read_text() == original

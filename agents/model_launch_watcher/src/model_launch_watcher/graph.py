@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field
-from typing import Final, Mapping, Sequence, TypedDict
+from typing import Final, Mapping, Protocol, Sequence, TypedDict
 
 import httpx
 from langgraph.graph import END, START, StateGraph
@@ -29,6 +29,7 @@ from .domain import (
     CandidateKind,
     DiscoveryResult,
     Inventory,
+    PriceCoverage,
     PricedCandidate,
     SourceFailure,
     TokenPricing,
@@ -36,7 +37,7 @@ from .domain import (
     utc_now,
 )
 from .memory import Memory
-from .price_diff import price_drift_candidates, resolve_catalog_key
+from .price_diff import compared_keys, price_drift_candidates, resolve_catalog_key
 from .pricing import (
     PRICING_PAGES,
     LiteLLMTableExtractor,
@@ -53,6 +54,12 @@ _NEEDS_DISCOVERY: Final[frozenset[CandidateKind]] = frozenset(
 _NEEDS_PRICES: Final[frozenset[CandidateKind]] = frozenset({"new_launch", "missing_price", "price_drift"})
 
 type GroundedTables = Mapping[str, Mapping[str, TokenPricing]]
+
+
+class DocFetcher(Protocol):
+    async def __call__(
+        self, provider: str, url: str, client: httpx.AsyncClient
+    ) -> PricingDoc | SourceFailure: ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,6 +88,7 @@ class Dependencies:
     memory: Memory = field(default_factory=Memory)
     sources: Sequence[ModelSource] = DEFAULT_SOURCES
     extractor: TableExtractor = field(default_factory=LiteLLMTableExtractor)
+    fetch_doc: DocFetcher = fetch_pricing_doc
     aggregator: Aggregator = field(default_factory=OpenRouterAggregator)
     pricing_pages: Mapping[str, str] = PRICING_PAGES
     http_timeout: float = 45.0
@@ -132,7 +140,7 @@ def build_graph(deps: Dependencies):
         wanted: Final = tuple(p for p in _providers(request) if p in deps.pricing_pages)
         async with _client(deps) as client:
             docs: Final = await asyncio.gather(
-                *(fetch_pricing_doc(p, deps.pricing_pages[p], client) for p in wanted)
+                *(deps.fetch_doc(p, deps.pricing_pages[p], client) for p in wanted)
             )
         gate: Final = asyncio.Semaphore(deps.concurrency)
         extracted: Final = await asyncio.gather(
@@ -171,6 +179,12 @@ def build_graph(deps: Dependencies):
                 | {p for p, table in state.get("tables", {}).items() if table}
             )
         )
+        tables: Final = state.get("tables", {})
+        checked: Final = frozenset(
+            key
+            for provider, grounded in tables.items()
+            for key in compared_keys(provider, deps.catalog, grounded, deps.memory)
+        )
         return {
             "report": WatchReport(
                 generated_at=utc_now(),
@@ -178,6 +192,9 @@ def build_graph(deps: Dependencies):
                 candidates=priced,
                 patch=build_patch(deps.catalog, priced),
                 failures=state.get("failures", ()),
+                coverage=PriceCoverage(
+                    compared=len(checked), token_billed_entries=len(deps.catalog.token_billed_keys())
+                ),
             )
         }
 
