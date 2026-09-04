@@ -12,9 +12,10 @@ collection instead of at 400-time.
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, Mapping
+from typing import cast
 
 import yaml
 
@@ -62,15 +63,20 @@ def load_all_deployments(
 ) -> tuple[CompatDeployment, ...]:
     """Every deployment declared in the yaml, in file order."""
     doc = yaml.safe_load(reader(config_path))
+    if not isinstance(doc, dict):
+        return ()
     model_list = doc.get("model_list") or []
+    if not isinstance(model_list, list):
+        return ()
     return tuple(
         CompatDeployment(
-            model_name=entry["model_name"],
+            model_name=str(entry["model_name"]),
             litellm_params=LiteLLMParamsBody(
-                **_normalize_params(entry["litellm_params"])
+                **_normalize_params(cast(Mapping[str, object], entry["litellm_params"]))
             ),
         )
         for entry in model_list
+        if isinstance(entry, dict) and "model_name" in entry and "litellm_params" in entry
     )
 
 
@@ -81,6 +87,4 @@ def all_expected_model_names(
 ) -> frozenset[str]:
     """Every virtual name the compat matrix declares - the ground truth
     the cells are supposed to probe. Used by the drift-check test."""
-    return frozenset(
-        d.model_name for d in load_all_deployments(config_path, reader)
-    )
+    return frozenset(d.model_name for d in load_all_deployments(config_path, reader))
